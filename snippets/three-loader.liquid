@@ -1,0 +1,10 @@
+{% comment %}
+  Three.js Loader Snippet
+  Preloads three.js modules for 3D product showcase.
+  Include this in sections that use three.js for faster loading.
+{% endcomment %}
+
+{% comment %} Preload three.js core and commonly used addons {% endcomment %}
+<link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" fetchpriority="high">
+<link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/GLTFLoader.js" fetchpriority="low">
+<link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/DRACOLoader.js" fetchpriority="low">

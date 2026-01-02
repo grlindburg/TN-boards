@@ -1,0 +1,249 @@
+{% comment %}
+  3D Product Showcase Section
+  A split-screen hero featuring two 3D product models with distinct accent lighting.
+  Desktop: Two columns side by side
+  Mobile: Two rows stacked vertically
+{% endcomment %}
+
+{% render 'three-loader' %}
+
+<style>
+  .hero-3d-showcase {
+    position: relative;
+    width: 100%;
+    height: {{ section.settings.section_height }}vh;
+    min-height: 400px;
+    overflow: hidden;
+  }
+
+  .hero-3d-showcase__canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .hero-3d-showcase__overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .hero-3d-showcase__panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 2rem;
+    pointer-events: auto;
+  }
+
+  .hero-3d-showcase__panel:first-child {
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .hero-3d-showcase__label {
+    font-family: var(--font-heading--family, inherit);
+    font-size: clamp(1.5rem, 4vw, 2.5rem);
+    font-weight: 600;
+    color: #fff;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+
+  .hero-3d-showcase__cta {
+    display: inline-block;
+    padding: 0.75rem 2rem;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    color: #fff;
+    text-decoration: none;
+    font-size: 0.9rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    transition: background 0.3s ease, transform 0.2s ease;
+  }
+
+  .hero-3d-showcase__cta:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateY(-2px);
+  }
+
+  .hero-3d-showcase__loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #fff;
+    font-size: 1rem;
+    z-index: 5;
+  }
+
+  .hero-3d-showcase__loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* Mobile: Stack vertically */
+  @media (max-width: 767px) {
+    .hero-3d-showcase__overlay {
+      flex-direction: column;
+    }
+
+    .hero-3d-showcase__panel:first-child {
+      border-right: none;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+  }
+</style>
+
+<section
+  class="hero-3d-showcase"
+  id="showcase-{{ section.id }}"
+  data-section-id="{{ section.id }}"
+  data-section-type="hero-3d-showcase"
+  data-panels='[
+    {%- for block in section.blocks -%}
+      {
+        "id": "{{ block.id }}",
+        "label": {{ block.settings.label | json }},
+        "accentColor": "{{ block.settings.accent_color }}",
+        "link": "{{ block.settings.product_link }}",
+        "model": "{{ block.settings.model_type }}"
+      }{% unless forloop.last %},{% endunless %}
+    {%- endfor -%}
+  ]'
+>
+  <div class="hero-3d-showcase__loading" id="loading-{{ section.id }}">
+    <div class="hero-3d-showcase__loading-spinner"></div>
+    <span>Loading 3D Experience...</span>
+  </div>
+
+  <canvas class="hero-3d-showcase__canvas" id="canvas-{{ section.id }}"></canvas>
+
+  <div class="hero-3d-showcase__overlay">
+    {% for block in section.blocks %}
+      <div
+        class="hero-3d-showcase__panel"
+        {{ block.shopify_attributes }}
+        data-panel-index="{{ forloop.index0 }}"
+      >
+        <h2 class="hero-3d-showcase__label">{{ block.settings.label }}</h2>
+        {% if block.settings.product_link != blank %}
+          <a href="{{ block.settings.product_link }}" class="hero-3d-showcase__cta">
+            {{ block.settings.cta_text | default: 'Shop Now' }}
+          </a>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+</section>
+
+<script src="{{ 'three-product-showcase.js' | asset_url }}" type="module"></script>
+
+{% schema %}
+{
+  "name": "3D Product Showcase",
+  "tag": "div",
+  "class": "section-3d-showcase",
+  "settings": [
+    {
+      "type": "range",
+      "id": "section_height",
+      "label": "Section Height (vh)",
+      "min": 50,
+      "max": 100,
+      "step": 5,
+      "default": 80,
+      "unit": "vh"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "product_panel",
+      "name": "Product Panel",
+      "limit": 2,
+      "settings": [
+        {
+          "type": "text",
+          "id": "label",
+          "label": "Product Label",
+          "default": "Board"
+        },
+        {
+          "type": "color",
+          "id": "accent_color",
+          "label": "Accent Light Color",
+          "default": "#FFD700"
+        },
+        {
+          "type": "url",
+          "id": "product_link",
+          "label": "Product Link"
+        },
+        {
+          "type": "text",
+          "id": "cta_text",
+          "label": "Button Text",
+          "default": "Shop Now"
+        },
+        {
+          "type": "select",
+          "id": "model_type",
+          "label": "3D Model",
+          "options": [
+            { "value": "nonkosher", "label": "Classic Board" },
+            { "value": "kosher", "label": "Kosher Board" }
+          ],
+          "default": "nonkosher"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "3D Product Showcase",
+      "blocks": [
+        {
+          "type": "product_panel",
+          "settings": {
+            "label": "Classic Board",
+            "accent_color": "#FFD700",
+            "model_type": "nonkosher",
+            "cta_text": "Shop Classic"
+          }
+        },
+        {
+          "type": "product_panel",
+          "settings": {
+            "label": "Kosher Board",
+            "accent_color": "#7B68EE",
+            "model_type": "kosher",
+            "cta_text": "Shop Kosher"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

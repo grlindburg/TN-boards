@@ -8,6 +8,36 @@
  * ------------------------------------------------------------
  */{
   "sections": {
+    "hero_3d_showcase_main": {
+      "type": "hero-3d-showcase",
+      "blocks": {
+        "panel_classic": {
+          "type": "product_panel",
+          "settings": {
+            "label": "Non-Kosher Board",
+            "accent_color": "#FFD700",
+            "cta_text": "Shop Non-Kosher",
+            "model_type": "nonkosher"
+          }
+        },
+        "panel_kosher": {
+          "type": "product_panel",
+          "settings": {
+            "label": "Kosher Board",
+            "accent_color": "#7B68EE",
+            "cta_text": "Shop Kosher",
+            "model_type": "kosher"
+          }
+        }
+      },
+      "block_order": [
+        "panel_kosher",
+        "panel_classic"
+      ],
+      "settings": {
+        "section_height": 80
+      }
+    },
     "hero_jVaWmY": {
       "type": "hero",
       "blocks": {
@@ -284,6 +314,7 @@
     }
   },
   "order": [
+    "hero_3d_showcase_main",
     "hero_jVaWmY",
     "product_list_fa6P9H"
   ]

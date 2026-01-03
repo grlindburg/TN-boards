@@ -116,9 +116,10 @@ class ProductShowcase {
   setupCamera() {
     const aspect = window.innerWidth / window.innerHeight;
     this.camera = new THREE.PerspectiveCamera(45, aspect, 0.1, 100);
-    // Angled view to see the scroll-driven tumble rotation around Z-axis
-    // Camera positioned to show the board flipping/tumbling as user scrolls
-    this.camera.position.set(0, 3.5, 5);
+    // Side-down view to showcase the scroll-driven tumble rotation around Z-axis
+    // Camera positioned to the side (X), elevated (Y), with depth (Z)
+    // This angle nicely shows the board flipping/tumbling as user scrolls
+    this.camera.position.set(4, 3, 2);
     this.camera.lookAt(0, 0, 0);
   }
 

@@ -53,7 +53,7 @@ class ProductShowcase {
     this.renderer.setScissorTest(true);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.2;
+    this.renderer.toneMappingExposure = 1.0;
   }
 
   setupScenes() {
@@ -68,46 +68,28 @@ class ProductShowcase {
       const bgColor = accentColor.clone().multiplyScalar(0.12);
       scene.background = bgColor;
 
-      // Ambient light - increased for top-down view
-      const ambient = new THREE.AmbientLight(0xffffff, 0.5);
+      // Ambient light for base illumination
+      const ambient = new THREE.AmbientLight(0xffffff, 0.6);
       scene.add(ambient);
 
-      // Hemisphere light for natural fill (sky/ground)
-      const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 0.5);
-      hemi.position.set(0, 20, 0);
-      scene.add(hemi);
-
-      // Main light from above and slightly front
+      // Main light from above
       const mainLight = new THREE.DirectionalLight(0xffffff, 1.0);
-      mainLight.position.set(0, 10, 3);
+      mainLight.position.set(0, 10, 5);
       scene.add(mainLight);
 
-      // Accent spotlight from above-right
-      const spotlight = new THREE.SpotLight(accentColor, 3);
+      // Fill light from below
+      const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
+      fillLight.position.set(0, -5, 0);
+      scene.add(fillLight);
+
+      // Accent spotlight for color tinting
+      const spotlight = new THREE.SpotLight(accentColor, 1.0);
       spotlight.position.set(4, 8, 4);
       spotlight.angle = Math.PI / 4;
       spotlight.penumbra = 0.6;
       spotlight.decay = 2;
       spotlight.distance = 30;
-      spotlight.castShadow = false;
       scene.add(spotlight);
-
-      // Secondary accent light from above-left
-      const accentLight = new THREE.SpotLight(accentColor, 2);
-      accentLight.position.set(-4, 8, -2);
-      accentLight.angle = Math.PI / 5;
-      accentLight.penumbra = 0.5;
-      scene.add(accentLight);
-
-      // Rim light from behind/below for edge definition
-      const rimLight = new THREE.DirectionalLight(0xffffff, 0.4);
-      rimLight.position.set(0, -2, -5);
-      scene.add(rimLight);
-
-      // Subtle fill from front-bottom
-      const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
-      fillLight.position.set(0, -1, 6);
-      scene.add(fillLight);
 
       this.scenes.push(scene);
     });
@@ -123,49 +105,73 @@ class ProductShowcase {
 
   loadModels() {
     let loadedCount = 0;
+    const loader = new GLTFLoader();
+
+    // Use the Shopify CDN cutting board model
+    const modelUrl = 'https://cdn.shopify.com/3d/models/69df80819d62d13f/simple_cutting_board.glb';
 
     this.panels.forEach((panel, index) => {
-      // Create placeholder geometry for now
-      this.createPlaceholderModel(index, panel);
-      loadedCount++;
-
-      if (loadedCount === this.panels.length) {
-        this.onModelsLoaded();
-      }
-
-      /*
-      // Uncomment when real models are available:
-      const loader = new GLTFLoader();
-      const modelUrl = panel.model === 'kosher'
-        ? '/cdn/shop/files/board-kosher.glb'
-        : '/cdn/shop/files/board-nonkosher.glb';
-
       loader.load(
         modelUrl,
         (gltf) => {
           const model = gltf.scene;
+
+          // Create a wood-grain material
+          const woodMaterial = new THREE.MeshStandardMaterial({
+            color: 0xBB7768,  // Light cherry wood color
+            roughness: 0.7,
+            metalness: 0.0,
+          });
+
+          // Apply wood material to all meshes
+          model.traverse((child) => {
+            if (child.isMesh) {
+              child.material = woodMaterial;
+            }
+          });
 
           // Center and scale model
           const box = new THREE.Box3().setFromObject(model);
           const center = box.getCenter(new THREE.Vector3());
           const size = box.getSize(new THREE.Vector3());
           const maxDim = Math.max(size.x, size.y, size.z);
-          const scale = 2.5 / maxDim;
 
-          model.position.sub(center);
-          model.scale.setScalar(scale);
+          // Scale to fit nicely in the viewport (adjust as needed)
+          const scale = 3.0 / maxDim;
 
-          this.models[index] = model;
-          this.scenes[index].add(model);
+          // Nested group structure:
+          // - animationGroup (outer): handles scroll-driven rotation
+          // - orientationGroup (inner): handles laying board flat + centering
+
+          // Inner group: center the model and lay it flat
+          const orientationGroup = new THREE.Group();
+          model.position.set(-center.x, -center.y, -center.z);
+          orientationGroup.add(model);
+          orientationGroup.rotation.x = -Math.PI / 2;  // Lay flat for top-down view
+
+          // Outer group: for scroll animation (rotates around long axis)
+          const animationGroup = new THREE.Group();
+          animationGroup.add(orientationGroup);
+          animationGroup.scale.setScalar(scale);
+
+          this.models[index] = animationGroup;
+          this.scenes[index].add(animationGroup);
 
           loadedCount++;
           if (loadedCount === this.panels.length) {
             this.onModelsLoaded();
           }
         },
-        undefined,
+        (progress) => {
+          // Optional: track loading progress
+          if (progress.lengthComputable) {
+            const percent = (progress.loaded / progress.total) * 100;
+            console.log(`Loading model ${index}: ${percent.toFixed(0)}%`);
+          }
+        },
         (error) => {
           console.error(`Error loading model ${index}:`, error);
+          // Fall back to placeholder if model fails to load
           this.createPlaceholderModel(index, panel);
           loadedCount++;
           if (loadedCount === this.panels.length) {
@@ -173,7 +179,6 @@ class ProductShowcase {
           }
         }
       );
-      */
     });
   }
 
@@ -329,16 +334,14 @@ class ProductShowcase {
     // Smooth scroll progress interpolation for nice eased motion
     this.scrollProgress += (this.targetScrollProgress - this.scrollProgress) * 0.08;
 
-    // Scroll-driven rotation around the Z-axis (tumble/flip motion)
-    // Board geometry is BoxGeometry(3.5, 0.18, 2.3) where X=length, Y=thickness, Z=width
-    // Rotating around Z causes the board to tumble/flip, showing top and bottom
+    // Scroll-driven rotation around the Z-axis (long axis / rotisserie style)
+    // Board is laid flat on XZ plane, rotating around Z spins it lengthwise
     // Full scroll (0 to 1) = one complete rotation (2 * PI radians)
     const targetRotationZ = this.scrollProgress * Math.PI * 2;
 
     this.models.forEach((model) => {
       if (model) {
-        // Scroll-driven rotation around Z-axis
-        // The smooth interpolation is already handled by scrollProgress
+        // Rotate around the board's long axis (Z-axis)
         model.rotation.z = targetRotationZ;
       }
     });
@@ -356,6 +359,10 @@ class ProductShowcase {
       // Mobile: Top and bottom viewports
       const halfHeight = Math.floor(height / 2);
 
+      // Update camera aspect for half-height viewport
+      this.camera.aspect = width / halfHeight;
+      this.camera.updateProjectionMatrix();
+
       // Top viewport (first panel)
       this.renderer.setViewport(0, halfHeight, width, halfHeight);
       this.renderer.setScissor(0, halfHeight, width, halfHeight);
@@ -372,6 +379,10 @@ class ProductShowcase {
     } else {
       // Desktop: Left and right viewports
       const halfWidth = Math.floor(width / 2);
+
+      // Update camera aspect for half-width viewport
+      this.camera.aspect = halfWidth / height;
+      this.camera.updateProjectionMatrix();
 
       // Left viewport (first panel)
       this.renderer.setViewport(0, 0, halfWidth, height);

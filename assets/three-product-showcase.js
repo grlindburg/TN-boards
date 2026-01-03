@@ -16,6 +16,10 @@ class ProductShowcase {
     // Parse panel configuration from data attribute
     this.panels = JSON.parse(container.dataset.panels || '[]');
 
+    // Panel overlay elements for parallax text
+    this.panelOverlays = container.querySelectorAll('.hero-3d-showcase__panel-overlay');
+    this.panelContents = container.querySelectorAll('.hero-3d-showcase__panel-content');
+
     // Scene state
     this.scenes = [];
     this.models = [];
@@ -37,7 +41,21 @@ class ProductShowcase {
     this.loadModels();
     this.setupEventListeners();
     this.setupScrollObserver();
+    this.setupPanelContent();
     this.animate();
+  }
+
+  setupPanelContent() {
+    // Initial update to position content correctly before animation loop
+    // This ensures no flash of incorrectly positioned content
+    const viewportHeight = this.isMobile ? window.innerHeight / 2 : window.innerHeight;
+
+    this.panelContents.forEach((content) => {
+      const contentHeight = content.scrollHeight;
+      const totalTravel = contentHeight + viewportHeight;
+      const translateY = viewportHeight - (this.scrollProgress * totalTravel);
+      content.style.transform = `translateY(${translateY}px)`;
+    });
   }
 
   setupRenderer() {
@@ -303,10 +321,16 @@ class ProductShowcase {
         entries.forEach((entry) => {
           this.isInView = entry.isIntersecting;
 
-          // Show/hide canvas wrapper based on visibility
+          // Show/hide canvas wrapper and panel overlays based on visibility
+          const visibility = entry.isIntersecting ? 'visible' : 'hidden';
+
           if (this.canvasWrapper) {
-            this.canvasWrapper.style.visibility = entry.isIntersecting ? 'visible' : 'hidden';
+            this.canvasWrapper.style.visibility = visibility;
           }
+
+          this.panelOverlays.forEach((overlay) => {
+            overlay.style.visibility = visibility;
+          });
         });
       },
       { threshold: 0 }
@@ -338,6 +362,9 @@ class ProductShowcase {
     this.camera.updateProjectionMatrix();
 
     this.renderer.setSize(width, height);
+
+    // Re-calculate panel content positions after resize
+    this.updatePanelParallax();
   }
 
   animate() {
@@ -362,7 +389,57 @@ class ProductShowcase {
       }
     });
 
+    // Update parallax text positions within each panel
+    this.updatePanelParallax();
+
     this.render();
+  }
+
+  updatePanelParallax() {
+    const viewportHeight = this.isMobile ? window.innerHeight / 2 : window.innerHeight;
+
+    this.panelContents.forEach((content) => {
+      // Get the total content height
+      const contentHeight = content.scrollHeight;
+
+      // Calculate total scroll distance needed to scroll all content through
+      // Content starts below viewport (100vh offset) and ends above it
+      const totalTravel = contentHeight + viewportHeight;
+
+      // Map scroll progress to content position
+      // At progress 0: content is below (translateY = viewportHeight)
+      // At progress 1: content has scrolled through (translateY = -contentHeight)
+      const translateY = viewportHeight - (this.scrollProgress * totalTravel);
+
+      content.style.transform = `translateY(${translateY}px)`;
+
+      // Update visibility of text sections based on their position
+      this.updateTextSectionVisibility(content, viewportHeight);
+    });
+  }
+
+  updateTextSectionVisibility(content, viewportHeight) {
+    const textSections = content.querySelectorAll('.hero-3d-showcase__text-section');
+    const contentTransform = new DOMMatrix(getComputedStyle(content).transform);
+    const contentY = contentTransform.m42; // translateY value
+
+    textSections.forEach((section) => {
+      // Calculate the section's position relative to the viewport
+      const sectionTop = section.offsetTop + contentY;
+      const sectionHeight = section.offsetHeight;
+      const sectionCenter = sectionTop + sectionHeight / 2;
+
+      // Section is visible when its center is within the viewport bounds
+      // with some buffer for smooth transitions
+      const visibleTop = viewportHeight * 0.15;
+      const visibleBottom = viewportHeight * 0.85;
+
+      if (sectionCenter > visibleTop && sectionCenter < visibleBottom) {
+        section.classList.add('is-visible');
+      } else {
+        section.classList.remove('is-visible');
+      }
+    });
   }
 
   render() {

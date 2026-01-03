@@ -1,7 +1,8 @@
 {% comment %}
-  3D Product Showcase Section - Scroll-Driven Version
+  3D Product Showcase Section - Self-Contained Parallax Version
   - Fixed 3D canvas as background layer
-  - Scrollable text content overlays the scene
+  - Each panel has its own contained scrolling text overlay
+  - Text scrolls within the bounds of each 3D scene area
   - Total height: configurable (200-500vh) for scroll distance
 {% endcomment %}
 
@@ -40,55 +41,76 @@
   }
 
   /* ========================================
-     SCROLLABLE CONTENT LAYER
+     PANEL OVERLAY SYSTEM
+     Each panel is fixed and covers half the viewport,
+     matching the 3D scene split. Text scrolls within.
      ======================================== */
 
-  .hero-3d-showcase__content {
-    position: relative;
+  .hero-3d-showcase__panel-overlay {
+    position: fixed;
+    top: 0;
+    height: 100vh;
     z-index: 10;
-    width: 100%;
-    min-height: 100%;
-    display: flex;
+    overflow: hidden;
     pointer-events: none;
   }
 
-  .hero-3d-showcase__column {
-    flex: 1;
+  /* Desktop: Left/Right split */
+  .hero-3d-showcase__panel-overlay--left {
+    left: 0;
+    width: 50%;
+  }
+
+  .hero-3d-showcase__panel-overlay--right {
+    right: 0;
+    width: 50%;
+  }
+
+  /* Panel content - this transforms to create scroll effect */
+  .hero-3d-showcase__panel-content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
     display: flex;
     flex-direction: column;
-    padding: 0 3rem;
+    padding: 0 2rem;
+    will-change: transform;
     pointer-events: auto;
   }
 
-  .hero-3d-showcase__column:first-child {
+  .hero-3d-showcase__panel-overlay--left .hero-3d-showcase__panel-content {
     align-items: flex-start;
-    padding-right: 12%;
+    padding-right: 20%;
   }
 
-  .hero-3d-showcase__column:last-child {
+  .hero-3d-showcase__panel-overlay--right .hero-3d-showcase__panel-content {
     align-items: flex-end;
-    padding-left: 12%;
+    padding-left: 20%;
   }
 
   /* ========================================
      TEXT SECTIONS
      ======================================== */
 
-  .hero-3d-showcase__spacer {
-    height: 100vh;
-    flex-shrink: 0;
-  }
-
   .hero-3d-showcase__text-section {
-    min-height: 80vh;
+    min-height: 100vh;
     display: flex;
     flex-direction: column;
     justify-content: center;
     padding: 4rem 0;
-    max-width: 420px;
+    max-width: 380px;
+    opacity: 0;
+    transform: translateY(40px);
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
   }
 
-  .hero-3d-showcase__column:last-child .hero-3d-showcase__text-section {
+  .hero-3d-showcase__text-section.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .hero-3d-showcase__panel-overlay--right .hero-3d-showcase__text-section {
     text-align: right;
   }
 
@@ -144,7 +166,7 @@
     text-shadow: 0 1px 8px rgba(0, 0, 0, 0.3);
   }
 
-  .hero-3d-showcase__column:last-child .hero-3d-showcase__feature-item {
+  .hero-3d-showcase__panel-overlay--right .hero-3d-showcase__feature-item {
     flex-direction: row-reverse;
   }
 
@@ -185,38 +207,7 @@
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   }
 
-  /* ========================================
-     SCROLL-DRIVEN ANIMATIONS
-     ======================================== */
-
-  @supports (animation-timeline: scroll()) {
-    .hero-3d-showcase__text-section {
-      opacity: 0;
-      transform: translateY(60px);
-      animation: fadeInUp linear both;
-      animation-timeline: view();
-      animation-range: entry 10% cover 35%;
-    }
-
-    @keyframes fadeInUp {
-      from {
-        opacity: 0;
-        transform: translateY(60px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-  }
-
-  /* Fallback for browsers without scroll-driven animations */
-  @supports not (animation-timeline: scroll()) {
-    .hero-3d-showcase__text-section {
-      opacity: 1;
-      transform: none;
-    }
-  }
+  /* Visibility animations are handled via JS class toggling */
 
   /* ========================================
      LOADING STATE
@@ -292,17 +283,30 @@
      ======================================== */
 
   @media (max-width: 767px) {
-    .hero-3d-showcase__content {
-      flex-direction: column;
+    /* Mobile: Top/Bottom split for panel overlays */
+    .hero-3d-showcase__panel-overlay {
+      width: 100%;
+      height: 50vh;
     }
 
-    .hero-3d-showcase__column {
+    .hero-3d-showcase__panel-overlay--left {
+      top: 0;
+      left: 0;
+    }
+
+    .hero-3d-showcase__panel-overlay--right {
+      top: 50vh;
+      left: 0;
+      right: auto;
+    }
+
+    .hero-3d-showcase__panel-content {
       padding: 0 1.5rem;
       align-items: center !important;
     }
 
-    .hero-3d-showcase__column:first-child,
-    .hero-3d-showcase__column:last-child {
+    .hero-3d-showcase__panel-overlay--left .hero-3d-showcase__panel-content,
+    .hero-3d-showcase__panel-overlay--right .hero-3d-showcase__panel-content {
       padding-left: 1.5rem;
       padding-right: 1.5rem;
     }
@@ -310,25 +314,30 @@
     .hero-3d-showcase__text-section {
       text-align: center;
       max-width: 100%;
-      min-height: 70vh;
+      min-height: 50vh;
     }
 
-    .hero-3d-showcase__column:last-child .hero-3d-showcase__text-section {
+    .hero-3d-showcase__panel-overlay--right .hero-3d-showcase__text-section {
       text-align: center;
     }
 
     .hero-3d-showcase__feature-item,
-    .hero-3d-showcase__column:last-child .hero-3d-showcase__feature-item {
+    .hero-3d-showcase__panel-overlay--right .hero-3d-showcase__feature-item {
       flex-direction: row;
       justify-content: center;
     }
 
     .hero-3d-showcase__title {
-      font-size: clamp(2rem, 8vw, 3rem);
+      font-size: clamp(1.75rem, 6vw, 2.5rem);
     }
 
-    .hero-3d-showcase__spacer {
-      height: 50vh;
+    .hero-3d-showcase__tagline,
+    .hero-3d-showcase__description {
+      font-size: 1rem;
+    }
+
+    .hero-3d-showcase__feature-item {
+      font-size: 0.95rem;
     }
   }
 </style>
@@ -363,17 +372,16 @@
     <canvas class="hero-3d-showcase__canvas" id="canvas-{{ section.id }}"></canvas>
   </div>
 
-  <!-- Scrollable Content -->
-  <div class="hero-3d-showcase__content">
-    {% for block in section.blocks %}
-      {% if block.type == "product_panel" %}
-        <div class="hero-3d-showcase__column" data-panel-index="{{ forloop.index0 }}" {{ block.shopify_attributes }}>
+  <!-- Panel Overlays - Each contains scrolling text for its 3D scene area -->
+  {% for block in section.blocks %}
+    {% if block.type == "product_panel" %}
+      <div class="hero-3d-showcase__panel-overlay hero-3d-showcase__panel-overlay--{% if forloop.first %}left{% else %}right{% endif %}"
+           data-panel-index="{{ forloop.index0 }}"
+           {{ block.shopify_attributes }}>
 
-          <!-- Spacer pushes content below initial view -->
-          <div class="hero-3d-showcase__spacer"></div>
-
+        <div class="hero-3d-showcase__panel-content">
           <!-- Product Title Section -->
-          <div class="hero-3d-showcase__text-section">
+          <div class="hero-3d-showcase__text-section" data-section-index="0">
             <h2 class="hero-3d-showcase__title">{{ block.settings.label }}</h2>
             {% if block.settings.tagline != blank %}
               <p class="hero-3d-showcase__tagline">{{ block.settings.tagline }}</p>
@@ -382,7 +390,7 @@
 
           <!-- Features Section -->
           {% if block.settings.feature_1 != blank or block.settings.feature_2 != blank or block.settings.feature_3 != blank %}
-            <div class="hero-3d-showcase__text-section">
+            <div class="hero-3d-showcase__text-section" data-section-index="1">
               <h3 class="hero-3d-showcase__subtitle">What's Included</h3>
               <ul class="hero-3d-showcase__feature-list">
                 {% if block.settings.feature_1 != blank %}
@@ -409,13 +417,13 @@
 
           <!-- Description Section -->
           {% if block.settings.description != blank %}
-            <div class="hero-3d-showcase__text-section">
+            <div class="hero-3d-showcase__text-section" data-section-index="2">
               <p class="hero-3d-showcase__description">{{ block.settings.description }}</p>
             </div>
           {% endif %}
 
           <!-- CTA Section -->
-          <div class="hero-3d-showcase__text-section">
+          <div class="hero-3d-showcase__text-section" data-section-index="3">
             {% if block.settings.product_link != blank %}
               <a href="{{ block.settings.product_link }}" class="hero-3d-showcase__cta">
                 {{ block.settings.cta_text | default: 'Shop Now' }}
@@ -426,11 +434,11 @@
               </a>
             {% endif %}
           </div>
-
         </div>
-      {% endif %}
-    {% endfor %}
-  </div>
+
+      </div>
+    {% endif %}
+  {% endfor %}
 
   <!-- Scroll Indicator -->
   <div class="hero-3d-showcase__scroll-indicator">

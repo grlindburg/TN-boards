@@ -116,14 +116,21 @@ class ProductShowcase {
         (gltf) => {
           const model = gltf.scene;
 
-          // Create a wood-grain material
+          // Create a tinted wood material unique to this panel
+          // Blend the base wood color with the panel's accent color
+          const baseWoodColor = new THREE.Color(0xBB7768);  // Light cherry wood color
+          const accentColor = new THREE.Color(panel.accentColor);
+
+          // Lerp toward the accent color for a subtle tint (0.2 = 20% accent influence)
+          const tintedColor = baseWoodColor.clone().lerp(accentColor, 0.2);
+
           const woodMaterial = new THREE.MeshStandardMaterial({
-            color: 0xBB7768,  // Light cherry wood color
+            color: tintedColor,
             roughness: 0.7,
             metalness: 0.0,
           });
 
-          // Apply wood material to all meshes
+          // Apply tinted wood material to all meshes
           model.traverse((child) => {
             if (child.isMesh) {
               child.material = woodMaterial;

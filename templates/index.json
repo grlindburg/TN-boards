@@ -16,20 +16,30 @@
           "type": "product_panel",
           "settings": {
             "label": "Kosher Board",
+            "tagline": "Certified kosher, uncompromised quality.",
+            "description": "Every ingredient is carefully sourced and certified kosher, ensuring the highest standards for your gathering. Experience the perfect blend of tradition and taste.",
+            "feature_1": "Certified kosher ingredients",
+            "feature_2": "Premium artisan selections",
+            "feature_3": "Thoughtfully curated presentation",
             "accent_color": "#7b68ee",
+            "model_type": "kosher",
             "product_link": "",
-            "cta_text": "Shop Kosher",
-            "model_type": "kosher"
+            "cta_text": "Shop Kosher"
           }
         },
         "panel_classic": {
           "type": "product_panel",
           "settings": {
             "label": "Non-Kosher Board",
+            "tagline": "The original, crafted to perfection.",
+            "description": "Our signature charcuterie board features an expertly curated selection of premium cured meats, artisan cheeses, and fresh accompaniments that will delight every palate.",
+            "feature_1": "Premium cured meats",
+            "feature_2": "Artisan cheese selection",
+            "feature_3": "Fresh seasonal accompaniments",
             "accent_color": "#ffd700",
+            "model_type": "nonkosher",
             "product_link": "",
-            "cta_text": "Shop Non-Kosher",
-            "model_type": "nonkosher"
+            "cta_text": "Shop Non-Kosher"
           }
         }
       },
@@ -38,7 +48,7 @@
         "panel_classic"
       ],
       "settings": {
-        "section_height": 80
+        "scroll_distance": 400
       }
     }
   },

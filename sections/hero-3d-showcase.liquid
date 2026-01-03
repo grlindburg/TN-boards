@@ -1,118 +1,334 @@
 {% comment %}
-  3D Product Showcase Section
-  A split-screen hero featuring two 3D product models with distinct accent lighting.
-  Desktop: Two columns side by side
-  Mobile: Two rows stacked vertically
+  3D Product Showcase Section - Scroll-Driven Version
+  - Fixed 3D canvas as background layer
+  - Scrollable text content overlays the scene
+  - Total height: configurable (200-500vh) for scroll distance
 {% endcomment %}
 
 {% render 'three-loader' %}
 
 <style>
+  /* ========================================
+     3D SHOWCASE - MAIN CONTAINER
+     ======================================== */
+
   .hero-3d-showcase {
     position: relative;
     width: 100%;
-    height: {{ section.settings.section_height }}vh;
-    min-height: 400px;
-    overflow: hidden;
+    height: {{ section.settings.scroll_distance }}vh;
+    min-height: 300vh;
+  }
+
+  /* ========================================
+     FIXED CANVAS LAYER
+     ======================================== */
+
+  .hero-3d-showcase__canvas-wrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    z-index: 1;
+    pointer-events: none;
   }
 
   .hero-3d-showcase__canvas {
-    position: absolute;
-    top: 0;
-    left: 0;
     width: 100%;
     height: 100%;
     display: block;
   }
 
-  .hero-3d-showcase__overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
+  /* ========================================
+     SCROLLABLE CONTENT LAYER
+     ======================================== */
+
+  .hero-3d-showcase__content {
+    position: relative;
+    z-index: 10;
     width: 100%;
-    height: 100%;
+    min-height: 100%;
     display: flex;
     pointer-events: none;
-    z-index: 10;
   }
 
-  .hero-3d-showcase__panel {
+  .hero-3d-showcase__column {
     flex: 1;
     display: flex;
     flex-direction: column;
-    justify-content: flex-end;
-    align-items: center;
-    padding: 2rem;
+    padding: 0 3rem;
     pointer-events: auto;
   }
 
-  .hero-3d-showcase__panel:first-child {
-    border-right: 1px solid rgba(255, 255, 255, 0.1);
+  .hero-3d-showcase__column:first-child {
+    align-items: flex-start;
+    padding-right: 12%;
   }
 
-  .hero-3d-showcase__label {
+  .hero-3d-showcase__column:last-child {
+    align-items: flex-end;
+    padding-left: 12%;
+  }
+
+  /* ========================================
+     TEXT SECTIONS
+     ======================================== */
+
+  .hero-3d-showcase__spacer {
+    height: 100vh;
+    flex-shrink: 0;
+  }
+
+  .hero-3d-showcase__text-section {
+    min-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 4rem 0;
+    max-width: 420px;
+  }
+
+  .hero-3d-showcase__column:last-child .hero-3d-showcase__text-section {
+    text-align: right;
+  }
+
+  .hero-3d-showcase__title {
     font-family: var(--font-heading--family, inherit);
-    font-size: clamp(1.5rem, 4vw, 2.5rem);
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 4px 30px rgba(0, 0, 0, 0.6);
+    margin: 0 0 1rem;
+    line-height: 1.1;
+  }
+
+  .hero-3d-showcase__tagline {
+    font-size: clamp(1.125rem, 2vw, 1.5rem);
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.9);
+    text-shadow: 0 2px 15px rgba(0, 0, 0, 0.4);
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  .hero-3d-showcase__subtitle {
+    font-family: var(--font-heading--family, inherit);
+    font-size: clamp(1.25rem, 2.5vw, 1.75rem);
     font-weight: 600;
     color: #fff;
-    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-    margin-bottom: 1rem;
-    text-align: center;
+    text-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
+    margin: 0 0 1.5rem;
+  }
+
+  .hero-3d-showcase__description {
+    font-size: 1.125rem;
+    line-height: 1.7;
+    color: rgba(255, 255, 255, 0.9);
+    text-shadow: 0 1px 10px rgba(0, 0, 0, 0.3);
+    margin: 0;
+  }
+
+  .hero-3d-showcase__feature-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .hero-3d-showcase__feature-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 0;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 1.125rem;
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .hero-3d-showcase__column:last-child .hero-3d-showcase__feature-item {
+    flex-direction: row-reverse;
+  }
+
+  .hero-3d-showcase__feature-icon {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 50%;
+    flex-shrink: 0;
+    font-size: 0.875rem;
   }
 
   .hero-3d-showcase__cta {
     display: inline-block;
-    padding: 0.75rem 2rem;
-    background: rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 4px;
+    padding: 1.25rem 3rem;
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 6px;
     color: #fff;
     text-decoration: none;
-    font-size: 0.9rem;
-    letter-spacing: 0.05em;
+    font-size: 1rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    transition: background 0.3s ease, transform 0.2s ease;
+    transition: all 0.3s ease;
+    margin-top: 1rem;
   }
 
   .hero-3d-showcase__cta:hover {
-    background: rgba(255, 255, 255, 0.25);
-    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.22);
+    border-color: rgba(255, 255, 255, 0.4);
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   }
 
+  /* ========================================
+     SCROLL-DRIVEN ANIMATIONS
+     ======================================== */
+
+  @supports (animation-timeline: scroll()) {
+    .hero-3d-showcase__text-section {
+      opacity: 0;
+      transform: translateY(60px);
+      animation: fadeInUp linear both;
+      animation-timeline: view();
+      animation-range: entry 10% cover 35%;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(60px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  }
+
+  /* Fallback for browsers without scroll-driven animations */
+  @supports not (animation-timeline: scroll()) {
+    .hero-3d-showcase__text-section {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* ========================================
+     LOADING STATE
+     ======================================== */
+
   .hero-3d-showcase__loading {
-    position: absolute;
+    position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
     color: #fff;
     font-size: 1rem;
     z-index: 5;
+    text-align: center;
+    transition: opacity 0.4s ease;
+  }
+
+  .hero-3d-showcase__loading[hidden] {
+    opacity: 0;
+    pointer-events: none;
   }
 
   .hero-3d-showcase__loading-spinner {
-    width: 40px;
-    height: 40px;
-    border: 3px solid rgba(255, 255, 255, 0.3);
+    width: 48px;
+    height: 48px;
+    border: 3px solid rgba(255, 255, 255, 0.2);
     border-top-color: #fff;
     border-radius: 50%;
     animation: spin 1s linear infinite;
-    margin: 0 auto 1rem;
+    margin: 0 auto 1.5rem;
   }
 
   @keyframes spin {
     to { transform: rotate(360deg); }
   }
 
-  /* Mobile: Stack vertically */
+  /* ========================================
+     SCROLL INDICATOR
+     ======================================== */
+
+  .hero-3d-showcase__scroll-indicator {
+    position: fixed;
+    bottom: 3rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+    color: rgba(255, 255, 255, 0.8);
+    text-align: center;
+    font-size: 0.875rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transition: opacity 0.4s ease;
+  }
+
+  .hero-3d-showcase__scroll-indicator svg {
+    display: block;
+    margin: 0.75rem auto 0;
+    animation: bounce 2s ease-in-out infinite;
+  }
+
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  .hero-3d-showcase.has-scrolled .hero-3d-showcase__scroll-indicator {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* ========================================
+     MOBILE RESPONSIVE
+     ======================================== */
+
   @media (max-width: 767px) {
-    .hero-3d-showcase__overlay {
+    .hero-3d-showcase__content {
       flex-direction: column;
     }
 
-    .hero-3d-showcase__panel:first-child {
-      border-right: none;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    .hero-3d-showcase__column {
+      padding: 0 1.5rem;
+      align-items: center !important;
+    }
+
+    .hero-3d-showcase__column:first-child,
+    .hero-3d-showcase__column:last-child {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+
+    .hero-3d-showcase__text-section {
+      text-align: center;
+      max-width: 100%;
+      min-height: 70vh;
+    }
+
+    .hero-3d-showcase__column:last-child .hero-3d-showcase__text-section {
+      text-align: center;
+    }
+
+    .hero-3d-showcase__feature-item,
+    .hero-3d-showcase__column:last-child .hero-3d-showcase__feature-item {
+      flex-direction: row;
+      justify-content: center;
+    }
+
+    .hero-3d-showcase__title {
+      font-size: clamp(2rem, 8vw, 3rem);
+    }
+
+    .hero-3d-showcase__spacer {
+      height: 50vh;
     }
   }
 </style>
@@ -124,38 +340,104 @@
   data-section-type="hero-3d-showcase"
   data-panels='[
     {%- for block in section.blocks -%}
-      {
-        "id": "{{ block.id }}",
-        "label": {{ block.settings.label | json }},
-        "accentColor": "{{ block.settings.accent_color }}",
-        "link": "{{ block.settings.product_link }}",
-        "model": "{{ block.settings.model_type }}"
-      }{% unless forloop.last %},{% endunless %}
+      {%- if block.type == "product_panel" -%}
+        {
+          "id": "{{ block.id }}",
+          "label": {{ block.settings.label | json }},
+          "accentColor": "{{ block.settings.accent_color }}",
+          "link": "{{ block.settings.product_link }}",
+          "model": "{{ block.settings.model_type }}"
+        }{% unless forloop.last %},{% endunless %}
+      {%- endif -%}
     {%- endfor -%}
   ]'
 >
+  <!-- Loading indicator -->
   <div class="hero-3d-showcase__loading" id="loading-{{ section.id }}">
     <div class="hero-3d-showcase__loading-spinner"></div>
     <span>Loading 3D Experience...</span>
   </div>
 
-  <canvas class="hero-3d-showcase__canvas" id="canvas-{{ section.id }}"></canvas>
+  <!-- Fixed 3D Canvas -->
+  <div class="hero-3d-showcase__canvas-wrapper" id="canvas-wrapper-{{ section.id }}">
+    <canvas class="hero-3d-showcase__canvas" id="canvas-{{ section.id }}"></canvas>
+  </div>
 
-  <div class="hero-3d-showcase__overlay">
+  <!-- Scrollable Content -->
+  <div class="hero-3d-showcase__content">
     {% for block in section.blocks %}
-      <div
-        class="hero-3d-showcase__panel"
-        {{ block.shopify_attributes }}
-        data-panel-index="{{ forloop.index0 }}"
-      >
-        <h2 class="hero-3d-showcase__label">{{ block.settings.label }}</h2>
-        {% if block.settings.product_link != blank %}
-          <a href="{{ block.settings.product_link }}" class="hero-3d-showcase__cta">
-            {{ block.settings.cta_text | default: 'Shop Now' }}
-          </a>
-        {% endif %}
-      </div>
+      {% if block.type == "product_panel" %}
+        <div class="hero-3d-showcase__column" data-panel-index="{{ forloop.index0 }}" {{ block.shopify_attributes }}>
+
+          <!-- Spacer pushes content below initial view -->
+          <div class="hero-3d-showcase__spacer"></div>
+
+          <!-- Product Title Section -->
+          <div class="hero-3d-showcase__text-section">
+            <h2 class="hero-3d-showcase__title">{{ block.settings.label }}</h2>
+            {% if block.settings.tagline != blank %}
+              <p class="hero-3d-showcase__tagline">{{ block.settings.tagline }}</p>
+            {% endif %}
+          </div>
+
+          <!-- Features Section -->
+          {% if block.settings.feature_1 != blank or block.settings.feature_2 != blank or block.settings.feature_3 != blank %}
+            <div class="hero-3d-showcase__text-section">
+              <h3 class="hero-3d-showcase__subtitle">What's Included</h3>
+              <ul class="hero-3d-showcase__feature-list">
+                {% if block.settings.feature_1 != blank %}
+                  <li class="hero-3d-showcase__feature-item">
+                    <span class="hero-3d-showcase__feature-icon">&#10003;</span>
+                    <span>{{ block.settings.feature_1 }}</span>
+                  </li>
+                {% endif %}
+                {% if block.settings.feature_2 != blank %}
+                  <li class="hero-3d-showcase__feature-item">
+                    <span class="hero-3d-showcase__feature-icon">&#10003;</span>
+                    <span>{{ block.settings.feature_2 }}</span>
+                  </li>
+                {% endif %}
+                {% if block.settings.feature_3 != blank %}
+                  <li class="hero-3d-showcase__feature-item">
+                    <span class="hero-3d-showcase__feature-icon">&#10003;</span>
+                    <span>{{ block.settings.feature_3 }}</span>
+                  </li>
+                {% endif %}
+              </ul>
+            </div>
+          {% endif %}
+
+          <!-- Description Section -->
+          {% if block.settings.description != blank %}
+            <div class="hero-3d-showcase__text-section">
+              <p class="hero-3d-showcase__description">{{ block.settings.description }}</p>
+            </div>
+          {% endif %}
+
+          <!-- CTA Section -->
+          <div class="hero-3d-showcase__text-section">
+            {% if block.settings.product_link != blank %}
+              <a href="{{ block.settings.product_link }}" class="hero-3d-showcase__cta">
+                {{ block.settings.cta_text | default: 'Shop Now' }}
+              </a>
+            {% else %}
+              <a href="#" class="hero-3d-showcase__cta">
+                {{ block.settings.cta_text | default: 'Shop Now' }}
+              </a>
+            {% endif %}
+          </div>
+
+        </div>
+      {% endif %}
     {% endfor %}
+  </div>
+
+  <!-- Scroll Indicator -->
+  <div class="hero-3d-showcase__scroll-indicator">
+    <span>Scroll to explore</span>
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M12 5v14M5 12l7 7 7-7"/>
+    </svg>
   </div>
 </section>
 
@@ -169,12 +451,13 @@
   "settings": [
     {
       "type": "range",
-      "id": "section_height",
-      "label": "Section Height (vh)",
-      "min": 50,
-      "max": 100,
-      "step": 5,
-      "default": 80,
+      "id": "scroll_distance",
+      "label": "Scroll Distance",
+      "info": "Total height of the scroll area. Higher values create more scroll distance.",
+      "min": 200,
+      "max": 500,
+      "step": 50,
+      "default": 400,
       "unit": "vh"
     }
   ],
@@ -185,16 +468,72 @@
       "limit": 2,
       "settings": [
         {
+          "type": "header",
+          "content": "Product Info"
+        },
+        {
           "type": "text",
           "id": "label",
-          "label": "Product Label",
-          "default": "Board"
+          "label": "Product Name",
+          "default": "Charcuterie Board"
+        },
+        {
+          "type": "textarea",
+          "id": "tagline",
+          "label": "Tagline",
+          "default": "Handcrafted with care for your perfect gathering."
+        },
+        {
+          "type": "textarea",
+          "id": "description",
+          "label": "Description",
+          "default": "Our boards are made from premium ingredients and designed to make every occasion special. Each piece is thoughtfully arranged to create a stunning presentation."
+        },
+        {
+          "type": "header",
+          "content": "Features"
+        },
+        {
+          "type": "text",
+          "id": "feature_1",
+          "label": "Feature 1",
+          "default": "Premium quality ingredients"
+        },
+        {
+          "type": "text",
+          "id": "feature_2",
+          "label": "Feature 2",
+          "default": "Handcrafted with care"
+        },
+        {
+          "type": "text",
+          "id": "feature_3",
+          "label": "Feature 3",
+          "default": "Perfect for any occasion"
+        },
+        {
+          "type": "header",
+          "content": "Appearance"
         },
         {
           "type": "color",
           "id": "accent_color",
           "label": "Accent Light Color",
           "default": "#FFD700"
+        },
+        {
+          "type": "select",
+          "id": "model_type",
+          "label": "3D Model",
+          "options": [
+            { "value": "nonkosher", "label": "Non-Kosher Board" },
+            { "value": "kosher", "label": "Kosher Board" }
+          ],
+          "default": "nonkosher"
+        },
+        {
+          "type": "header",
+          "content": "Link"
         },
         {
           "type": "url",
@@ -206,16 +545,6 @@
           "id": "cta_text",
           "label": "Button Text",
           "default": "Shop Now"
-        },
-        {
-          "type": "select",
-          "id": "model_type",
-          "label": "3D Model",
-          "options": [
-            { "value": "nonkosher", "label": "Classic Board" },
-            { "value": "kosher", "label": "Kosher Board" }
-          ],
-          "default": "nonkosher"
         }
       ]
     }
@@ -227,19 +556,29 @@
         {
           "type": "product_panel",
           "settings": {
-            "label": "Classic Board",
-            "accent_color": "#FFD700",
-            "model_type": "nonkosher",
-            "cta_text": "Shop Classic"
+            "label": "Kosher Board",
+            "tagline": "Certified kosher, uncompromised quality.",
+            "description": "Every ingredient is carefully sourced and certified kosher, ensuring the highest standards for your gathering. Experience the perfect blend of tradition and taste.",
+            "feature_1": "Certified kosher ingredients",
+            "feature_2": "Premium artisan selections",
+            "feature_3": "Thoughtfully curated presentation",
+            "accent_color": "#7B68EE",
+            "model_type": "kosher",
+            "cta_text": "Shop Kosher"
           }
         },
         {
           "type": "product_panel",
           "settings": {
-            "label": "Kosher Board",
-            "accent_color": "#7B68EE",
-            "model_type": "kosher",
-            "cta_text": "Shop Kosher"
+            "label": "Non-Kosher Board",
+            "tagline": "The original, crafted to perfection.",
+            "description": "Our signature charcuterie board features an expertly curated selection of premium cured meats, artisan cheeses, and fresh accompaniments that will delight every palate.",
+            "feature_1": "Premium cured meats",
+            "feature_2": "Artisan cheese selection",
+            "feature_3": "Fresh seasonal accompaniments",
+            "accent_color": "#FFD700",
+            "model_type": "nonkosher",
+            "cta_text": "Shop Non-Kosher"
           }
         }
       ]

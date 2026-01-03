@@ -1,6 +1,6 @@
 /**
- * 3D Product Showcase
- * Split-screen hero with two 3D product models and distinct accent lighting
+ * 3D Product Showcase - Scroll-Driven Version
+ * Fixed canvas with scroll-responsive 3D content
  */
 
 import * as THREE from 'three';
@@ -9,6 +9,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 class ProductShowcase {
   constructor(container) {
     this.container = container;
+    this.canvasWrapper = container.querySelector('[id^="canvas-wrapper-"]');
     this.canvas = container.querySelector('canvas');
     this.loadingEl = container.querySelector('[id^="loading-"]');
 
@@ -18,10 +19,12 @@ class ProductShowcase {
     // Scene state
     this.scenes = [];
     this.models = [];
-    this.isHovered = [false, false];
-    this.rotationSpeed = 0.3;
-    this.clock = new THREE.Clock();
     this.isMobile = window.innerWidth < 768;
+
+    // Scroll state
+    this.scrollProgress = 0;
+    this.targetScrollProgress = 0;
+    this.isInView = true;
 
     // Initialize
     this.init();
@@ -33,6 +36,7 @@ class ProductShowcase {
     this.setupCamera();
     this.loadModels();
     this.setupEventListeners();
+    this.setupScrollObserver();
     this.animate();
   }
 
@@ -45,7 +49,7 @@ class ProductShowcase {
     });
 
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setScissorTest(true);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -53,49 +57,56 @@ class ProductShowcase {
   }
 
   setupScenes() {
-    // Create two scenes with different lighting
+    // Create two scenes with different lighting (optimized for top-down view)
     this.panels.forEach((panel, index) => {
       const scene = new THREE.Scene();
 
       // Parse accent color
       const accentColor = new THREE.Color(panel.accentColor);
 
-      // Create gradient background
-      const bgColor = accentColor.clone().multiplyScalar(0.15);
+      // Create darker background based on accent
+      const bgColor = accentColor.clone().multiplyScalar(0.12);
       scene.background = bgColor;
 
-      // Ambient light (low intensity base)
-      const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+      // Ambient light - increased for top-down view
+      const ambient = new THREE.AmbientLight(0xffffff, 0.5);
       scene.add(ambient);
 
-      // Hemisphere light for natural fill
+      // Hemisphere light for natural fill (sky/ground)
       const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 0.5);
       hemi.position.set(0, 20, 0);
       scene.add(hemi);
 
-      // Main accent spotlight
+      // Main light from above and slightly front
+      const mainLight = new THREE.DirectionalLight(0xffffff, 1.0);
+      mainLight.position.set(0, 10, 3);
+      scene.add(mainLight);
+
+      // Accent spotlight from above-right
       const spotlight = new THREE.SpotLight(accentColor, 3);
-      spotlight.position.set(5, 10, 7);
+      spotlight.position.set(4, 8, 4);
       spotlight.angle = Math.PI / 4;
-      spotlight.penumbra = 0.5;
+      spotlight.penumbra = 0.6;
       spotlight.decay = 2;
-      spotlight.distance = 50;
-      spotlight.castShadow = false; // Disable for performance
+      spotlight.distance = 30;
+      spotlight.castShadow = false;
       scene.add(spotlight);
 
-      // Secondary accent light from opposite side
-      const accentLight = new THREE.PointLight(accentColor, 1.5, 20);
-      accentLight.position.set(-5, 3, -5);
+      // Secondary accent light from above-left
+      const accentLight = new THREE.SpotLight(accentColor, 2);
+      accentLight.position.set(-4, 8, -2);
+      accentLight.angle = Math.PI / 5;
+      accentLight.penumbra = 0.5;
       scene.add(accentLight);
 
-      // Rim light for depth
-      const rimLight = new THREE.DirectionalLight(0xffffff, 0.8);
-      rimLight.position.set(-5, 5, -10);
+      // Rim light from behind/below for edge definition
+      const rimLight = new THREE.DirectionalLight(0xffffff, 0.4);
+      rimLight.position.set(0, -2, -5);
       scene.add(rimLight);
 
-      // Front fill light
-      const fillLight = new THREE.DirectionalLight(0xffffff, 0.6);
-      fillLight.position.set(0, 2, 10);
+      // Subtle fill from front-bottom
+      const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
+      fillLight.position.set(0, -1, 6);
       scene.add(fillLight);
 
       this.scenes.push(scene);
@@ -103,19 +114,19 @@ class ProductShowcase {
   }
 
   setupCamera() {
-    const aspect = this.container.clientWidth / this.container.clientHeight;
+    const aspect = window.innerWidth / window.innerHeight;
     this.camera = new THREE.PerspectiveCamera(45, aspect, 0.1, 100);
-    this.camera.position.set(0, 2, 6);
+    // Angled view to see the scroll-driven tumble rotation around Z-axis
+    // Camera positioned to show the board flipping/tumbling as user scrolls
+    this.camera.position.set(0, 3.5, 5);
     this.camera.lookAt(0, 0, 0);
   }
 
   loadModels() {
-    const loader = new GLTFLoader();
     let loadedCount = 0;
 
     this.panels.forEach((panel, index) => {
-      // For now, create placeholder geometry
-      // Replace with actual model loading when .glb files are available
+      // Create placeholder geometry for now
       this.createPlaceholderModel(index, panel);
       loadedCount++;
 
@@ -125,6 +136,7 @@ class ProductShowcase {
 
       /*
       // Uncomment when real models are available:
+      const loader = new GLTFLoader();
       const modelUrl = panel.model === 'kosher'
         ? '/cdn/shop/files/board-kosher.glb'
         : '/cdn/shop/files/board-nonkosher.glb';
@@ -133,19 +145,13 @@ class ProductShowcase {
         modelUrl,
         (gltf) => {
           const model = gltf.scene;
-          model.traverse((child) => {
-            if (child.isMesh) {
-              child.castShadow = true;
-              child.receiveShadow = true;
-            }
-          });
 
           // Center and scale model
           const box = new THREE.Box3().setFromObject(model);
           const center = box.getCenter(new THREE.Vector3());
           const size = box.getSize(new THREE.Vector3());
           const maxDim = Math.max(size.x, size.y, size.z);
-          const scale = 2 / maxDim;
+          const scale = 2.5 / maxDim;
 
           model.position.sub(center);
           model.scale.setScalar(scale);
@@ -158,9 +164,7 @@ class ProductShowcase {
             this.onModelsLoaded();
           }
         },
-        (progress) => {
-          console.log(`Loading model ${index}: ${(progress.loaded / progress.total * 100).toFixed(0)}%`);
-        },
+        undefined,
         (error) => {
           console.error(`Error loading model ${index}:`, error);
           this.createPlaceholderModel(index, panel);
@@ -175,65 +179,74 @@ class ProductShowcase {
   }
 
   createPlaceholderModel(index, panel) {
-    // Create a placeholder board-like shape
     const group = new THREE.Group();
 
-    // Board base (rounded rectangle approximation)
-    const boardGeometry = new THREE.BoxGeometry(3, 0.15, 2, 1, 1, 1);
+    // Board base - slightly larger
+    const boardGeometry = new THREE.BoxGeometry(3.5, 0.18, 2.3, 1, 1, 1);
     const boardMaterial = new THREE.MeshStandardMaterial({
       color: 0x8B4513,
-      roughness: 0.7,
-      metalness: 0.1
+      roughness: 0.65,
+      metalness: 0.05
     });
     const board = new THREE.Mesh(boardGeometry, boardMaterial);
     group.add(board);
 
-    // Add some placeholder "food" items
-    const itemColors = [0xFFD700, 0xFF6B6B, 0x98D8C8, 0xF7DC6F, 0xBB8FCE];
-    const itemPositions = [
-      [-0.8, 0.2, -0.5], [-0.3, 0.15, 0.3], [0.5, 0.2, -0.3],
-      [0.9, 0.15, 0.4], [-0.5, 0.18, 0.6], [0.2, 0.22, -0.6]
+    // Add placeholder items - more variety
+    const itemConfigs = [
+      { pos: [-1.0, 0.22, -0.6], size: 0.22, color: 0xFFD700, type: 'sphere' },  // cheese
+      { pos: [-0.4, 0.18, 0.4], size: 0.18, color: 0xFF6B6B, type: 'cylinder' }, // meat
+      { pos: [0.6, 0.24, -0.4], size: 0.20, color: 0x98D8C8, type: 'sphere' },   // grape
+      { pos: [1.1, 0.16, 0.5], size: 0.16, color: 0xF7DC6F, type: 'cylinder' },  // cracker
+      { pos: [-0.6, 0.20, 0.7], size: 0.19, color: 0xBB8FCE, type: 'sphere' },   // fig
+      { pos: [0.3, 0.25, -0.7], size: 0.23, color: 0xE74C3C, type: 'sphere' },   // cherry
+      { pos: [0.9, 0.17, -0.2], size: 0.15, color: 0xF39C12, type: 'cylinder' }, // slice
+      { pos: [-1.2, 0.19, 0.1], size: 0.17, color: 0x27AE60, type: 'sphere' },   // olive
     ];
 
-    itemPositions.forEach((pos, i) => {
-      const size = 0.15 + Math.random() * 0.15;
-      const geometry = Math.random() > 0.5
-        ? new THREE.SphereGeometry(size, 16, 16)
-        : new THREE.CylinderGeometry(size, size, size * 0.5, 16);
+    itemConfigs.forEach((config) => {
+      let geometry;
+      if (config.type === 'sphere') {
+        geometry = new THREE.SphereGeometry(config.size, 20, 20);
+      } else {
+        geometry = new THREE.CylinderGeometry(config.size, config.size, config.size * 0.4, 20);
+      }
 
       const material = new THREE.MeshStandardMaterial({
-        color: itemColors[i % itemColors.length],
-        roughness: 0.5,
+        color: config.color,
+        roughness: 0.4,
         metalness: 0.1
       });
 
       const item = new THREE.Mesh(geometry, material);
-      item.position.set(pos[0], pos[1], pos[2]);
-      if (geometry.type === 'CylinderGeometry') {
+      item.position.set(config.pos[0], config.pos[1], config.pos[2]);
+      if (config.type === 'cylinder') {
         item.rotation.x = Math.PI / 2;
       }
       group.add(item);
     });
 
-    // Add saran wrap effect (transparent plane)
-    const wrapGeometry = new THREE.PlaneGeometry(3.2, 2.2);
+    // Saran wrap effect - subtle transparent overlay
+    const wrapGeometry = new THREE.PlaneGeometry(3.7, 2.5);
     const wrapMaterial = new THREE.MeshPhysicalMaterial({
       color: 0xffffff,
       transparent: true,
-      opacity: 0.15,
-      roughness: 0.1,
+      opacity: 0.12,
+      roughness: 0.05,
       metalness: 0,
-      transmission: 0.9,
-      thickness: 0.1,
+      transmission: 0.95,
+      thickness: 0.05,
       side: THREE.DoubleSide
     });
     const wrap = new THREE.Mesh(wrapGeometry, wrapMaterial);
-    wrap.position.y = 0.35;
+    wrap.position.y = 0.4;
     wrap.rotation.x = -Math.PI / 2;
     group.add(wrap);
 
-    // Position the group
-    group.rotation.x = -0.2;
+    // Board lies flat for top-down view - no initial rotation
+    // The camera looks down from above
+    group.rotation.x = 0;
+    group.rotation.y = 0;
+    group.rotation.z = 0;
 
     this.models[index] = group;
     this.scenes[index].add(group);
@@ -244,8 +257,8 @@ class ProductShowcase {
     if (this.loadingEl) {
       this.loadingEl.style.opacity = '0';
       setTimeout(() => {
-        this.loadingEl.style.display = 'none';
-      }, 300);
+        this.loadingEl.hidden = true;
+      }, 400);
     }
   }
 
@@ -253,45 +266,52 @@ class ProductShowcase {
     // Resize handler
     window.addEventListener('resize', () => this.onResize());
 
-    // Hover detection for each panel
-    const panels = this.container.querySelectorAll('.hero-3d-showcase__panel');
-    panels.forEach((panel, index) => {
-      panel.addEventListener('mouseenter', () => {
-        this.isHovered[index] = true;
-      });
-      panel.addEventListener('mouseleave', () => {
-        this.isHovered[index] = false;
-      });
-    });
+    // Scroll handler for progress tracking
+    window.addEventListener('scroll', () => this.onScroll(), { passive: true });
 
-    // Also detect hover on canvas regions
-    this.canvas.addEventListener('mousemove', (e) => this.onMouseMove(e));
-    this.canvas.addEventListener('mouseleave', () => {
-      this.isHovered = [false, false];
-    });
+    // Track when user has scrolled (for hiding scroll indicator)
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 50) {
+        this.container.classList.add('has-scrolled');
+      }
+    }, { passive: true, once: true });
   }
 
-  onMouseMove(event) {
-    const rect = this.canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
+  setupScrollObserver() {
+    // Use IntersectionObserver to pause rendering when not in view
+    this.observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          this.isInView = entry.isIntersecting;
 
-    if (this.isMobile) {
-      // Vertical split
-      const midY = rect.height / 2;
-      this.isHovered[0] = y < midY;
-      this.isHovered[1] = y >= midY;
-    } else {
-      // Horizontal split
-      const midX = rect.width / 2;
-      this.isHovered[0] = x < midX;
-      this.isHovered[1] = x >= midX;
-    }
+          // Show/hide canvas wrapper based on visibility
+          if (this.canvasWrapper) {
+            this.canvasWrapper.style.visibility = entry.isIntersecting ? 'visible' : 'hidden';
+          }
+        });
+      },
+      { threshold: 0 }
+    );
+
+    this.observer.observe(this.container);
+  }
+
+  onScroll() {
+    // Calculate scroll progress through the section
+    const rect = this.container.getBoundingClientRect();
+    const sectionHeight = this.container.offsetHeight;
+    const viewportHeight = window.innerHeight;
+
+    // Progress from 0 (section at top of viewport) to 1 (section scrolled past)
+    const scrolled = -rect.top;
+    const totalScrollable = sectionHeight - viewportHeight;
+
+    this.targetScrollProgress = Math.max(0, Math.min(1, scrolled / totalScrollable));
   }
 
   onResize() {
-    const width = this.container.clientWidth;
-    const height = this.container.clientHeight;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
 
     this.isMobile = window.innerWidth < 768;
 
@@ -304,22 +324,32 @@ class ProductShowcase {
   animate() {
     requestAnimationFrame(() => this.animate());
 
-    const delta = this.clock.getDelta();
+    // Skip rendering when not in view for performance
+    if (!this.isInView) return;
 
-    // Rotate models
-    this.models.forEach((model, index) => {
-      if (model && !this.isHovered[index]) {
-        model.rotation.y += this.rotationSpeed * delta;
+    // Smooth scroll progress interpolation for nice eased motion
+    this.scrollProgress += (this.targetScrollProgress - this.scrollProgress) * 0.08;
+
+    // Scroll-driven rotation around the Z-axis (tumble/flip motion)
+    // Board geometry is BoxGeometry(3.5, 0.18, 2.3) where X=length, Y=thickness, Z=width
+    // Rotating around Z causes the board to tumble/flip, showing top and bottom
+    // Full scroll (0 to 1) = one complete rotation (2 * PI radians)
+    const targetRotationZ = this.scrollProgress * Math.PI * 2;
+
+    this.models.forEach((model) => {
+      if (model) {
+        // Scroll-driven rotation around Z-axis
+        // The smooth interpolation is already handled by scrollProgress
+        model.rotation.z = targetRotationZ;
       }
     });
 
-    // Render both viewports
     this.render();
   }
 
   render() {
-    const width = this.container.clientWidth;
-    const height = this.container.clientHeight;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
 
     this.renderer.setScissorTest(true);
 
@@ -330,7 +360,9 @@ class ProductShowcase {
       // Top viewport (first panel)
       this.renderer.setViewport(0, halfHeight, width, halfHeight);
       this.renderer.setScissor(0, halfHeight, width, halfHeight);
-      this.renderer.render(this.scenes[0], this.camera);
+      if (this.scenes[0]) {
+        this.renderer.render(this.scenes[0], this.camera);
+      }
 
       // Bottom viewport (second panel)
       if (this.scenes[1]) {
@@ -345,7 +377,9 @@ class ProductShowcase {
       // Left viewport (first panel)
       this.renderer.setViewport(0, 0, halfWidth, height);
       this.renderer.setScissor(0, 0, halfWidth, height);
-      this.renderer.render(this.scenes[0], this.camera);
+      if (this.scenes[0]) {
+        this.renderer.render(this.scenes[0], this.camera);
+      }
 
       // Right viewport (second panel)
       if (this.scenes[1]) {
@@ -357,8 +391,15 @@ class ProductShowcase {
   }
 
   destroy() {
-    // Cleanup
+    // Cleanup observer
+    if (this.observer) {
+      this.observer.disconnect();
+    }
+
+    // Cleanup renderer
     this.renderer.dispose();
+
+    // Cleanup scenes
     this.scenes.forEach(scene => {
       scene.traverse((object) => {
         if (object.geometry) object.geometry.dispose();
@@ -379,7 +420,6 @@ function initShowcases() {
   const containers = document.querySelectorAll('[data-section-type="hero-3d-showcase"]');
 
   containers.forEach(container => {
-    // Check if already initialized
     if (!container.dataset.initialized) {
       new ProductShowcase(container);
       container.dataset.initialized = 'true';
@@ -399,5 +439,14 @@ document.addEventListener('shopify:section:load', (event) => {
   const section = event.target;
   if (section.querySelector('[data-section-type="hero-3d-showcase"]')) {
     initShowcases();
+  }
+});
+
+// Cleanup on section unload
+document.addEventListener('shopify:section:unload', (event) => {
+  const section = event.target;
+  const container = section.querySelector('[data-section-type="hero-3d-showcase"]');
+  if (container && container._showcase) {
+    container._showcase.destroy();
   }
 });

@@ -121,8 +121,8 @@ class ProductShowcase {
           const baseWoodColor = new THREE.Color(0xBB7768);  // Light cherry wood color
           const accentColor = new THREE.Color(panel.accentColor);
 
-          // Lerp toward the accent color for a subtle tint (0.2 = 20% accent influence)
-          const tintedColor = baseWoodColor.clone().lerp(accentColor, 0.2);
+          // Lerp toward the accent color for a subtle tint (0.35 = 35% accent influence)
+          const tintedColor = baseWoodColor.clone().lerp(accentColor, 0.35);
 
           const woodMaterial = new THREE.MeshStandardMaterial({
             color: tintedColor,
@@ -192,10 +192,18 @@ class ProductShowcase {
   createPlaceholderModel(index, panel) {
     const group = new THREE.Group();
 
+    // Create a tinted wood material for the placeholder board
+    // Blend the base wood color with the panel's accent color
+    const baseWoodColor = new THREE.Color(0x8B4513);  // Saddle brown wood color
+    const accentColor = new THREE.Color(panel.accentColor);
+
+    // Lerp toward the accent color for a subtle tint (0.35 = 35% accent influence)
+    const tintedColor = baseWoodColor.clone().lerp(accentColor, 0.35);
+
     // Board base - slightly larger
     const boardGeometry = new THREE.BoxGeometry(3.5, 0.18, 2.3, 1, 1, 1);
     const boardMaterial = new THREE.MeshStandardMaterial({
-      color: 0x8B4513,
+      color: tintedColor,
       roughness: 0.65,
       metalness: 0.05
     });
@@ -346,10 +354,11 @@ class ProductShowcase {
     // Full scroll (0 to 1) = one complete rotation (2 * PI radians)
     const targetRotationZ = this.scrollProgress * Math.PI * 2;
 
-    this.models.forEach((model) => {
+    this.models.forEach((model, index) => {
       if (model) {
         // Rotate around the board's long axis (Z-axis)
-        model.rotation.z = targetRotationZ;
+        // Second board (index 1) rotates in opposite direction
+        model.rotation.z = index === 0 ? targetRotationZ : -targetRotationZ;
       }
     });
 
